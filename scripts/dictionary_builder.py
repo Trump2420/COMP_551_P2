@@ -7,38 +7,36 @@ Created on Wed Feb  1 23:28:47 2017
 """
 
 import pandas as pd
-import numpy as np
-
-# the minimum number of times a word must appear to be included
-# in the dictionary
-count_quota = 5
+#import numpy as np
+import nltk
  
 # get the csv
 df = pd.read_csv("../csv_files/train_input_processed.csv")
 
-project_2_dictionary = {}
+tokens = []
 
-# build the dictionary
+#get all the words that appear in the corpus
 for index,row in df.iterrows():
     print index
-    # split up the conversation into strings
-    convo_list = row['conversation'].split(" ")
-    # add any unadded words
-    for word in convo_list:
-        if word not in project_2_dictionary.keys():
-            project_2_dictionary[word] = 0
-        else:
-            project_2_dictionary[word] += 1
-            
-# create the dataframe that will hold the dictionary
-minimum_dictionary = []
-for word in project_2_dictionary:
-    if project_2_dictionary[word] >= count_quota:
-        minimum_dictionary.append(word)
-                                          
-out_df = pd.DataFrame({"word":np.array[sorted(minimum_dictionary)]})
+    tokens.extend(row['conversation'].split(" "))
+    
+    
 
-outfile = "../csv_files/dictionary_minimum_count_{}.csv".format(count_quota)
+project_2_dictionary = []
 
-out_df.to_csv(outfile)
+
+# find the frequency distribution of these tokens
+freq_dist = nltk.FreqDist(tokens)
+# filter out the rare words
+most_common = freq_dist.most_common(80000)
+
+words = [item[0] for item in most_common]
+counts = [item[1] for item in most_common]
+      
+                                        
+out_df = pd.DataFrame({"word":words,"count":counts})
+
+outfile = "../csv_files/dictionary_distribution.csv"
+
+out_df.to_csv(outfile, index=False)
 

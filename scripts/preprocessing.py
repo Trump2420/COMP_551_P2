@@ -7,7 +7,7 @@ This is a temporary script file.
 
 import pandas as pd
 import nltk
-import re, string
+import string
 
 # get the training data
 df = pd.read_csv('../csv_files/train_input.csv')
@@ -21,11 +21,6 @@ stemmer = nltk.stem.porter.PorterStemmer()
 # words that we want to remove that are unlikely to show up in 
 # stopwords but that we want to remove anyways
 additional_words = ["</s>", "<number>", "</d>"]
-
-# common website names
-#websites = ["com","org","edu"]
-
-
 
 #iterate through the list of posts
 for index, row in df.iterrows():
@@ -63,6 +58,8 @@ for index, row in df.iterrows():
         
     df.set_value(index,'conversation'," ".join(conv_words_pruned))
     
-df.to_csv("../csv_files/train_input_processed.csv", index=False)
+df.to_csv("../csv_files/train_input_preprocess.csv", index=False)
+
+
         
 #    print conv_words_pruned
