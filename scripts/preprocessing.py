@@ -7,10 +7,11 @@ This is a temporary script file.
 
 import pandas as pd
 import nltk
-import string
+import re
 
+test_train = "test"
 # get the training data
-df = pd.read_csv('../csv_files/train_input.csv')
+df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))
 
 # get the common stopwords
 sw = nltk.corpus.stopwords.words("english")
@@ -47,8 +48,11 @@ for index, row in df.iterrows():
                 #remove this substring
                 test_word = test_word.replace(ad_word,"")
         
-        # get rid of any leftover punctuation and whitespace
-        test_word = test_word.strip('\t\r\n').translate(None, string.punctuation)
+        # get rid of any leftover whitespace
+        test_word = test_word.strip('\t\r\n')
+        
+        # remove all non-alphanumeric characters
+        test_word = re.sub('[^0-9a-zA-Z]+', '', test_word)
         
         # don't add empty strings or stop words
         if (not test_word) or (test_word in sw):
@@ -58,7 +62,7 @@ for index, row in df.iterrows():
         
     df.set_value(index,'conversation'," ".join(conv_words_pruned))
     
-df.to_csv("../csv_files/train_input_preprocess.csv", index=False)
+df.to_csv("../csv_files/{}_input_preprocess.csv".format(test_train), index=False)
 
 
         
