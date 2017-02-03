@@ -10,11 +10,13 @@ import pandas as pd
 import numpy as np
 from copy import copy
 
+test_train = "test"
+
 most_common_count = 2000
-outfile = "../csv_files/train_vectors_{}.csv".format(most_common_count)
+outfile = "../csv_files/{0}_vectors_{1}.csv".format(test_train,most_common_count)
 
 # get the conversations
-df_train = pd.read_csv("../csv_files/train_input_processed.csv")
+df_train = pd.read_csv("../csv_files/{}_input_processed.csv".format(test_train))
 
 # the dataframe will be created from this
 output = []
