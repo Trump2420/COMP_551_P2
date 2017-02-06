@@ -28,13 +28,13 @@ project_2_dictionary = []
 # find the frequency distribution of these tokens
 freq_dist = nltk.FreqDist(tokens)
 # filter out the rare words
-most_common = freq_dist.most_common(80000)
+most_common = freq_dist.most_common(10000)
 
 words = [item[0] for item in most_common]
 counts = [item[1] for item in most_common]
       
                                         
-out_df = pd.DataFrame({"word":words,"count":counts})
+out_df = pd.DataFrame({"word":words})
 
 outfile = "../csv_files/dictionary_distribution.csv"
 
