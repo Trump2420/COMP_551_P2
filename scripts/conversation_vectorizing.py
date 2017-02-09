@@ -6,10 +6,13 @@ Created on Thu Feb  2 17:50:51 2017
 @author: al
 """
 
+#
+
 import pandas as pd
 import numpy as np
 from copy import copy
 
+# vectorize either the train or test sets
 test_train = "test"
 
 most_common_count = 2000
@@ -21,7 +24,7 @@ df_train = pd.read_csv("../csv_files/{}_input_processed.csv".format(test_train))
 # the dataframe will be created from this
 output = []
 
-# get the dictionary
+# get the dictionary with only the desired number of most common words
 df_dictionary = pd.read_csv("../csv_files/dictionary_distribution.csv").head(most_common_count)
 
 # make the table that will hold the vectors
@@ -46,7 +49,6 @@ for index, row in df_train.iterrows():
     for word in word_list:
         if any(df_dictionary.word == word):
             conversation_count[word] += 1
-#            output.ix[index,df_dictionary[df_dictionary['word'] == word].index[0]] += 1
     
     # add a copy of of the count to the output
     output.append(copy(conversation_count))
