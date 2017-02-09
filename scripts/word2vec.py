@@ -18,7 +18,8 @@ class MySentences(object):
         for line in open("../csv_files/{}.csv".format(self.fname)):
             # return a generator, removing the id and blank space that
             # arrives from splitting
-            yield re.split("\W+",line.lower())[:-1]
+            if re.split("\W+",line.lower())[0] != 'id':
+                yield re.split("\W+",line.lower())[1:-1]
             
             
 sentences = MySentences('train_input_processed')
@@ -26,4 +27,5 @@ model = gs.models.Word2Vec(iter=5,size=200,workers=4,min_count=10)
 model.build_vocab(sentences)
 sentences = MySentences('test_input_processed')
 model.train(sentences)
-
+model.init_sims(replace=True)
+model.save('project2_word2vec_model')
