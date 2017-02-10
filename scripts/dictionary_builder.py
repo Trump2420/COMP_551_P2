@@ -9,26 +9,36 @@ Created on Wed Feb  1 23:28:47 2017
 import pandas as pd
 #import numpy as np
 import nltk
+import re
 
-
-# get the csv containing all the preprocessed conversations in the training data
-input_csv = "../csv_files/train_input_processed_2_grams.csv"
-
-output_csv = "../csv_files/train_dictionary.csv"
-
+class MySentences(object):
+    def __init__(self, fname):
+        self.fname = fname
  
-# get the csv
-df = pd.read_csv(input_csv)
+    def __iter__(self):
+        for line in open("../csv_files/{}.csv".format(self.fname)):
+            # return a generator, removing the id and blank space that
+            # arrives from splitting
+            if re.split("\W+",line.lower())[0] != 'id':
+                yield re.split("\W+",line.lower())[1:-1]
+
+n_grams = 1
+# get the csv containing all the preprocessed conversations in the training data
+train_csv = "train_input_processed_{}_grams".format(n_grams)
+test_csv = "test_input_processed_{}_grams".format(n_grams)
+
+output_csv = "../csv_files/dictionary_frequency_{}_grams.csv".format(n_grams)
+
+
 
 tokens = []
-
-#get all the words that appear in the training corpus
-for index,row in df.iterrows():
-    print index
-    tokens.extend(row['conversation'].split(" "))
-
-
-project_2_dictionary = []
+for fname in [train_csv,test_csv]:
+    #get all the words that appear in the training corpus
+    i = 0
+    for conversation in MySentences(fname):
+        print i
+        i+=1
+        tokens.extend(conversation)
 
 
 # find the frequency distribution of these tokens

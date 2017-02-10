@@ -9,6 +9,7 @@ import pandas as pd
 from nltk.corpus import wordnet, stopwords
 from nltk import stem, pos_tag
 import re
+import csv
 
 
     
@@ -101,41 +102,56 @@ def get_ngrams(conversation_list,n_grams_length):
     n_grams = zip(*[conversation_list[i:] for i in range(n_grams_length)])
         
     return ["_".join(n_gram) for n_gram in n_grams]
+            
+            
+#class MySentences(object):
+#    def __init__(self, fname):
+#        self.fname = fname
+# 
+#    def __iter__(self):
+#        for line in open("../csv_files/{}.csv".format(self.fname)):
+#            # return a generator, removing the id and blank space that
+#            # arrives from splitting
+#            if (re.split("\W+",line.lower())[0] != 'id') and line:
+#                yield line.lower().split(" ")[1:]
     
     
 
 if __name__ == "__main__":
     
-    n_grams_count = 2 # if 1, just the words themselves
+    n_grams_count = 1 # if 1, just the words themselves
     
     for test_train in ["test","train"]:
+    
         # get the training data
-        df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))  
+        conv_df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))
         
-        #iterate through the list of posts
-        for index, row in df.iterrows():
+        fname = "../csv_files/{0}_input_processed_{1}_grams.csv".format(
+                  test_train,n_grams_count)
+        
+        with open(fname,'w') as csvfile:
+            
+            writer = csv.writer(csvfile)
+            writer.writerow(('id','conversation'))
+            
+            #iterate through the list of posts
+            for index,row in conv_df.iterrows():
+                print index
                 
-            print index
-            
-            # get each of the words in the conversation
-            conversation_list = row['conversation'].split(" ")
-            
-            # remove the noisy words/characters
-            conversation_list = filter_conversation(conversation_list)  
-            
-            # find the part of speach for each word in the conversation
-            conversation_list_wth_POS = pos_tag(conversation_list)
-            
-            # lemmatize the conversation
-            conversation_list = context_lemmatize(conversation_list_wth_POS)
-            
-            # now remove stopwords
-            conversation_list = [x for x in conversation_list if x not in sw]
-
-            if n_grams_count > 1:
-                conversation_list.extend(get_ngrams(conversation_list,n_grams_count)) 
+                # remove the noisy words/characters
+                conversation_list = filter_conversation(
+                                        row['conversation'].split(" "))  
                 
-            df.set_value(index,'conversation'," ".join(conversation_list))
-            
-        df.to_csv("../csv_files/{0}_input_processed_{1}_grams.csv".format(
-                  test_train,n_grams_count), index=False)        
+                # find the part of speach for each word in the conversation
+                conversation_list_wth_POS = pos_tag(conversation_list)
+                
+                # lemmatize the conversation
+                conversation_list = context_lemmatize(conversation_list_wth_POS)
+                
+                # now remove stopwords
+                conversation_list = [x for x in conversation_list if x not in sw]
+    
+                if n_grams_count > 1:
+                    conversation_list.extend(get_ngrams(conversation_list,n_grams_count)) 
+                    
+                writer.writerow((index," ".join(conversation_list))) 
