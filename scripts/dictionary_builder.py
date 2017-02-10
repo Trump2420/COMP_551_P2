@@ -12,7 +12,7 @@ import nltk
 
 
 # get the csv containing all the preprocessed conversations in the training data
-input_csv = "../csv_files/train_input_processed.csv"
+input_csv = "../csv_files/train_input_processed_2_grams.csv"
 
 output_csv = "../csv_files/train_dictionary.csv"
 

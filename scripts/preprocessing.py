@@ -73,7 +73,8 @@ def get_wordnet_pos(treebank_tag):
 
         
 def context_lemmatize(conversation_with_POS):
-    # lemmatize the word given a specific context (i.e., verb, noun,adj,adv)
+    # lemmatize the word given a specific part of speech
+    # (i.e., verb, noun,adj,adv)
     
     lemmatized_conversation = []
     for word_with_POS in conversation_with_POS:
@@ -86,34 +87,55 @@ def context_lemmatize(conversation_with_POS):
                         wordnet_lemmatizer.lemmatize(word_with_POS[0]))
             
     return lemmatized_conversation
+    
+    
+    
         
+def get_ngrams(conversation_list,n_grams_length):
+    # take the conversation and produce a list of the n-grams contained by
+    # this conversation. For example
+    # ["the", "quick", "brown"] returns 
+    # ["the_quick", "quick_brown"] for n-gram of length 2
+    
+    # get a list of lists for the number of n_grams
+    n_grams = zip(*[conversation_list[i:] for i in range(n_grams_length)])
+        
+    return ["_".join(n_gram) for n_gram in n_grams]
+    
+    
 
 if __name__ == "__main__":
-
-    test_train = "train"
-    # get the training data
-    df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))  
     
-    #iterate through the list of posts
-    for index, row in df.iterrows():
+    n_grams_count = 2 # if 1, just the words themselves
+    
+    for test_train in ["test","train"]:
+        # get the training data
+        df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))  
+        
+        #iterate through the list of posts
+        for index, row in df.iterrows():
+                
+            print index
             
-        print index
-        
-        # get each of the words in the conversation
-        conversation_list = row['conversation'].split(" ")
-        
-        # remove the noisy words/characters
-        conversation_list = filter_conversation(conversation_list)  
-        
-        # find the part of speach for each word in the conversation
-        conversation_list_wth_POS = pos_tag(conversation_list)
-        
-        # lemmatize the conversation
-        conversation_list = context_lemmatize(conversation_list_wth_POS)
-        
-        # now remove stopwords
-        conversation_list = [x for x in conversation_list if x not in sw]
+            # get each of the words in the conversation
+            conversation_list = row['conversation'].split(" ")
             
-        df.set_value(index,'conversation'," ".join(conversation_list))
-        
-    df.to_csv("../csv_files/{}_input_processed.csv".format(test_train), index=False)        
+            # remove the noisy words/characters
+            conversation_list = filter_conversation(conversation_list)  
+            
+            # find the part of speach for each word in the conversation
+            conversation_list_wth_POS = pos_tag(conversation_list)
+            
+            # lemmatize the conversation
+            conversation_list = context_lemmatize(conversation_list_wth_POS)
+            
+            # now remove stopwords
+            conversation_list = [x for x in conversation_list if x not in sw]
+
+            if n_grams_count > 1:
+                conversation_list.extend(get_ngrams(conversation_list,n_grams_count)) 
+                
+            df.set_value(index,'conversation'," ".join(conversation_list))
+            
+        df.to_csv("../csv_files/{0}_input_processed_{1}_grams.csv".format(
+                  test_train,n_grams_count), index=False)        

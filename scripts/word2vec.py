@@ -20,12 +20,13 @@ class MySentences(object):
             # arrives from splitting
             if re.split("\W+",line.lower())[0] != 'id':
                 yield re.split("\W+",line.lower())[1:-1]
-            
-            
-sentences = MySentences('train_input_processed')
+
+n_grams = 2
+
+sentences = MySentences('train_input_processed_2_grams'.format())
 model = gs.models.Word2Vec(iter=5,size=200,workers=4,min_count=10)
 model.build_vocab(sentences)
-sentences = MySentences('test_input_processed')
+sentences = MySentences('test_input_processed_2_grams')
 model.train(sentences)
 model.init_sims(replace=True)
-model.save('project2_word2vec_model')
+model.save('project2_word2vec_model_2_grams')
