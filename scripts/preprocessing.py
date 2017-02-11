@@ -91,96 +91,94 @@ def context_lemmatize(conversation_with_POS):
             lemmatized_conversation.append(
                         str(wordnet_lemmatizer.lemmatize(word_with_POS[0])))
             
-    return lemmatized_conversation
-    
-    
-    
-        
-def get_ngrams(conversation_list,n_grams_length):
-    # take the conversation and produce a list of the n-grams contained by
-    # this conversation. For example
-    # ["the", "quick", "brown"] returns 
-    # ["the_quick", "quick_brown"] for n-gram of length 2
-    
-    # get a list of lists for the number of n_grams
-    n_grams = zip(*[conversation_list[i:] for i in range(n_grams_length)])
-        
-    return ["_".join(n_gram) for n_gram in n_grams]
-            
-            
-#class MySentences(object):
-#    def __init__(self):
-#        pass
-# 
-#    def __iter__(self):
-#        for line in open("../csv_files/{}.csv".format(self.fname)):
-#            # return a generator, removing the id and blank space that
-#            # arrives from splitting
-#            if (re.split("\W+",line.lower())[0] != 'id') and line:
-#                yield line.lower().split(" ")[1:-1]
-#
-#class list_to_string(conv_list):
-#    for 
+    return lemmatized_conversation            
+     
     
 class TfidfW2V():
-    def __init__(self,trigram):
+    def __init__(self,trigram,model=None,tfidf=None):
+        # load in the trigram phraser and any existing models
         self.tg = trigram
-        self.idf = None
-        self.w2v_model = None
+        if tfidf:
+            self.idf = tfidf
+            max_idf = max(self.idf.idf_)
+        
+            self.word_to_idf = defaultdict(
+                lambda: max_idf,
+                [(w, self.idf.idf_[i]) for w, i in self.idf.vocabulary_.items()])
+        else:
+            self.idf = None
+        if model:
+            self.w2v_model = model
+        else:
+            self.w2v_model = None
         self.word_to_idf = None
         self.dim = 200
         
         
     def fit(self,corpus):
-        print "getting test corpus"
-        tg_corpus_test = [[x for x in list(self.tg[conv]) if x not in sw] for conv in corpus["test"]]
-        print "getting training corpus"
-        tg_corpus_train = [[x for x in list(self.tg[conv]) if x not in sw] for conv in corpus["train"]]
-        
-        self.w2v_model = gs.models.Word2Vec(iter=5,size=200,workers=4,min_count=10)
-        self.w2v_model.build_vocab(tg_corpus_train)
-        
-        for i in range(3):
-            print i, " test"
-            self.w2v_model.train(tg_corpus_test)
-            print i, " train"
-            self.w2v_model.train(tg_corpus_train)
+        # train whichever model is lacking
+        if (not self.w2v_model) or (not self.idf):
+            print "getting test corpus"
+            tg_corpus_test = [[x for x in list(self.tg[conv]) if x not in sw] for conv in corpus["test"]]
+            print "getting training corpus"
+            tg_corpus_train = [[x for x in list(self.tg[conv]) if x not in sw] for conv in corpus["train"]]
             
-                        
-        tfidf_corpus = [" ".join(conv) for conv in tg_corpus_test + tg_corpus_train]
-                        
-#        self.w2v_model = gs.models.Word2Vec(iter=5,size=self.dim,workers=4,min_count = 5)
-#        self.w2v_model.build_vocab(tg_corpus)
-        
-        self.idf = TfidfVectorizer(analyzer='word').fit(tfidf_corpus)
-        
-        max_idf = max(self.tf.idf_)
-        
-        self.word_to_idf = defaultdict(
-            lambda: max_idf,
-            [(w, self.idf.idf_[i]) for w, i in self.idf.vocabulary_.items()])
+            if (not self.w2v_model):       
+                """
+                this is an incredibly important step in word2vec. you can't just
+                build a vocabulary and stop there. The more you train the 
+                model on corpi, the better the model gets. This can take quite
+                a while however. W2V expects lists of lists of words as input
+                """
+                self.w2v_model = gs.models.Word2Vec(iter=5,size=200,workers=4,
+                                                    min_count=10)
+                self.w2v_model.build_vocab(tg_corpus_train)
+                
+                for i in range(3):
+                    print i, " test"
+                    self.w2v_model.train(tg_corpus_test)
+                    print i, " train"
+                    self.w2v_model.train(tg_corpus_train)
+                
+            if not self.idf:  
+                # in contrast to w2v, tfidf expects list of strings and only
+                # needs to be fit once
+                tfidf_corpus = [" ".join(conv) for conv in tg_corpus_test + 
+                                tg_corpus_train]
+                     
+                
+                self.idf = TfidfVectorizer(analyzer='word').fit(tfidf_corpus)
+                
+                max_idf = max(self.idf.idf_)
+                
+                # the dictionary that will return the idf value for a word.
+                # if a word is not in the dictionary for tfidf, the maximum
+                # idf value is returned since this word is at least as rare
+                # as the rarest word in the corpus
+                self.word_to_idf = defaultdict(
+                    lambda: max_idf,
+                    [(w, self.idf.idf_[i]) for w, i in 
+                     self.idf.vocabulary_.items()])
         
         
     def vectorize_conversation(self,conv):
+        # take a list of words in a conversation and return an averaged value
+        # based on word2vec vector representation of this word and the weight
+        # attributed to it by tfidf
+        
         #get a dictionary of the count of each unique word in the conversation
         counts = Counter(conv)
         # the total number of words in the conversation
         total = float(len(conv))
+        
+        # if a word is not in the w2v vocabulary, return a 0 vector, otherwise
+        # get the tf, idf and w2v vector representation and multiply all of
+        # these together. 
         vector = np.mean(
                     [(counts[w]/total)*self.word_to_idf[w]*self.w2v_model[w] for w in counts
                      if w in self.w2v_model] or [np.zeros(self.dim)], axis = 0)
         return vector
         
-class MySentences(object):
-    def __init__(self, fname):
-        self.fname = fname
- 
-    def __iter__(self):
-        for line in open("{}.csv".format(self.fname)):
-            # return a generator, removing the id and blank space that
-            # arrives from splitting
-            if re.split("\W+",line.lower())[0] != 'id':
-                yield re.split("\W+",line.lower())[1:-1]
     
 
 if __name__ == "__main__":
@@ -205,9 +203,9 @@ if __name__ == "__main__":
             # lemmatize the conversation
             conversation_list = context_lemmatize(conversation_list_wth_POS)  
             
-#            conversation_list = [x for x in conversation_list if x not in sw]
-            #don't take stopwords out now, because they may be something like
+            #don't take stopwords just yet, because they may be something like
             # hall_<of>_fame which is important
+            
             #add the list in one string to the corpus
             corpus[test_train].append(conversation_list)
             
@@ -215,24 +213,39 @@ if __name__ == "__main__":
     bigram = gs.models.Phrases(corpus["test"] + corpus["train"])
     trigram = gs.models.Phrases(bigram[corpus["test"] + corpus["train"]]) 
 
-#    df = pd.DataFrame({"id":range(5001),"conversation": trigram[corpus['train']]})
-#    df.to_csv('train.csv')
-#    
-#    df = pd.DataFrame({"id":range(5001),"conversation": trigram[corpus['test']]})
-#    df.to_csv('test.csv')
-#    model = gs.models.Word2Vec(iter=5,size=200,workers=4,min_count=5)
-#    model.build_vocab(corpus["train"])
-#    for i in range(3):
-##        sentences = MySentences('test_input_processed_1_grams')
-#        model.train(list(trigram[corpus['test']]))
-##        sentences = MySentences('train_input_processed_1_grams')
-##        model.train(trigram[corpus['train']])
+    
+    # create the vectorizer
     vectorizer = TfidfW2V(trigram)
-#            
-#    # feed the conversations with trigrams into the tfidf    
-#   
+    # feed the corpus of train and test sets into the vectorizer
     vectorizer.fit(corpus)
     
+    """
+    note that the above can be accomplished with pre-existing tfidf and word2vec
+    objects like
+    
+    vectorizer = TfidfW2V(trigram,w2vmodel,tfidf)
+    
+    so these can be saved and loaded in other scripts to save time
+    """
+    
+    # save the results for each files
+    for item in  ["train","test"]:
+        
+        fname = "../csv_files/{}_input_vectorized.csv".format(item)
+        
+        with open(fname,'w') as csvfile:
+            headers= ['id']
+            headers.extend(range(200))
+            writer = csv.writer(csvfile)
+            writer.writerow(headers)
+            
+            for i in range(len(corpus[item])):
+                print i
+                next_row = [i]
+                vector = vectorizer.vectorize_conversation(corpus[item][i])
+                next_row.extend(["{0:.4f}".format(x) for x in list(vector)])
+                writer.writerow(next_row) 
+        
     
 
                 
