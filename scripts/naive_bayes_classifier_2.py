@@ -139,7 +139,7 @@ def file_maker(name, lst):
 # creating variables and assigning appropriate values to them
 train_output_list = words_from_file("train_output_processed.csv")
 train_input_list = list_from_file("train_input_processed.csv")
-dictionary = words_from_file("dictionary_10000.csv")
+dictionary = words_from_file("dictionary_20000.csv")
 test_input_list = list_from_file("test_input_processed.csv")
 # print(test_input_list[0])
 
@@ -192,5 +192,5 @@ temp = []
 for i, v in enumerate(test_input_list):
     temp.append(prediction(v))
     print(i)
-file_maker("test_predict.csv", temp)
+file_maker("test_predict_4.csv", temp)
 
