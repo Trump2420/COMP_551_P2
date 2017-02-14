@@ -22,36 +22,39 @@ class MySentences(object):
             if re.split("\W+",line.lower())[0] != 'id':
                 yield re.split("\W+",line.lower())[1:-1]
 
-n_grams = 1
-# get the csv containing all the preprocessed conversations in the training data
-train_csv = "train_input_processed_{}_grams".format(n_grams)
-test_csv = "test_input_processed_{}_grams".format(n_grams)
-
-output_csv = "../csv_files/dictionary_frequency_{}_grams.csv".format(n_grams)
-
-
-
-tokens = []
-for fname in [train_csv,test_csv]:
-    #get all the words that appear in the training corpus
-    i = 0
-    for conversation in MySentences(fname):
-        print i
-        i+=1
-        tokens.extend(conversation)
-
-
-# find the frequency distribution of these tokens
-freq_dist = nltk.FreqDist(tokens)
-
-# sort by order of frequency
-most_common = freq_dist.most_common()
-
-# obtains the frequency and words
-words = [item[0] for item in most_common]
-counts = [item[1] for item in most_common]
-
-# create a dataframe and save as a csv                                       
-out_df = pd.DataFrame({"word":words, "counts":counts})
-out_df.to_csv(output_csv, index=False)
+def build_dictionary():
+    # get the csv containing all the preprocessed conversations in the training data
+    train_csv = "train_input_processed_trigrams"
+    test_csv = "test_input_processed_trigrams"
+    
+    output_csv = "../csv_files/dictionary_frequency_trigrams.csv"
+    
+    
+    
+    tokens = []
+    for fname in [train_csv,test_csv]:
+        #get all the words that appear in the training corpus
+        i = 0
+        for conversation in MySentences(fname):
+            print i
+            i+=1
+            tokens.extend(conversation)
+    
+    
+    # find the frequency distribution of these tokens
+    freq_dist = nltk.FreqDist(tokens)
+    
+    # sort by order of frequency
+    most_common = freq_dist.most_common()
+    
+    # obtains the frequency and words
+    words = [item[0] for item in most_common]
+    counts = [item[1] for item in most_common]
+    
+    # create a dataframe and save as a csv                                       
+    out_df = pd.DataFrame({"word":words, "counts":counts})
+    out_df.to_csv(output_csv, index=False)
+    
+if __name__ == "__main__":
+    build_dictionary()
 
