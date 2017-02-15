@@ -13,6 +13,7 @@ from nltk import stem, pos_tag
 import re
 import csv
 import gensim as gs
+import os.path
 
 
     
@@ -125,56 +126,129 @@ def get_n_grams(n):
     corpus = {"test":[],"train":[]}
     
     for test_train in corpus.keys():
-    
-        # get the training data
-        conv_df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))
         
-        
-            
-        #iterate through the list of posts
-        for index,row in conv_df.iterrows():
-            print test_train, ": ",index
-            
-            # remove the noisy words/characters
-            conversation_list = filter_conversation(
-                                    row['conversation'].split(" "))  
-            
-            # find the part of speach for each word in the conversation
-            conversation_list_wth_POS = pos_tag(conversation_list)
-            
-            # lemmatize the conversation
-            conversation_list = context_lemmatize(conversation_list_wth_POS)
-            
-
-            
-            corpus[test_train].append(conversation_list) 
+        fname = "../csv_files/{0}_input_fitltered.csv".format(
+                  test_train)
+        # check if the file already exists prior to attempting to 
+        # process it
+        if os.path.isfile(fname) :
+            print "reading in {}".format(test_train)
+            in_df = pd.read_csv(fname)
+            for index,row in in_df.iterrows():
+                if index % 10000 == 0:
+                    print test_train, ": " + str(index)
+                corpus[test_train].append(row['conversation'].split(" "))
+        else:
+            print "building {}".format(test_train)
+            # go through the process of filtering the conversations and
+            # save them for later
+            with open(fname,'w') as csvfile:
+                # the corpus is saved as a dataframe
+                corpus[test_train] = pd.DataFrame(columns=('id','conversation'))
+                
+                writer = csv.writer(csvfile)
+                writer.writerow(('id','conversation'))
+                
+                # get the training data
+                conv_df = pd.read_csv('../csv_files/{}_input.csv'.format(test_train))
+                
+                    
+                #iterate through the list of posts
+                for index,row in conv_df.iterrows():
+                    if index % 10000 == 0:
+                        print test_train, ": ",index
+                    
+                    # remove the noisy words/characters
+                    conversation_list = filter_conversation(
+                                            row['conversation'].split(" "))  
+                    
+                    # find the part of speach for each word in the conversation
+                    conversation_list_wth_POS = pos_tag(conversation_list)
+                    
+                    # lemmatize the conversation
+                    conversation_list = context_lemmatize(conversation_list_wth_POS)
+                    
+#                    corpus[test_train].append(conversation_list) 
+                    corpus[test_train].append(conversation_list)
+                    writer.writerow((index," ".join(conversation_list)))
     
     if n >= 2:
-        bigram = gs.models.Phrases(corpus["test"] + corpus["train"])
+        if os.path.isfile('../models/bigram_phraser'):
+            print "loading previous bigram phraser"
+            # attempt to load a previously trained bigram phraser
+            bigram = gs.models.Phrases.load('../models/bigram_phraser')
+        else:
+            print "generating new bigram phraser"
+            bigram = gs.models.Phrases(corpus["test"] + corpus["train"])
+            bigram.save('../models/bigram_phraser')
     if n==3:
-        trigram = gs.models.Phrases(bigram[corpus["test"] + corpus["train"]])       
-                
-    # rrmove stopwords
+        if os.path.isfile('../models/trigram_phraser'):
+            print "loading previous trigram phraser"
+            trigram = gs.models.Phrases.load('../models/trigram_phraser')
+        else:
+            print "generating new trigram phraser"
+            trigram = gs.models.Phrases(bigram[corpus["test"] + corpus["train"]])       
+            trigram.save('../models/trigram_phraser')
+            
+            
+    # remove stopwords
+    print "removing stopwords"
     for test_train in corpus.keys():
-        for i in range(len(corpus[test_train])):
-            corpus[test_train][i] = [x for x in corpus[test_train][i] if x not in sw]
-        
+        fname = "../csv_files/{0}_input_filtered_no_stopwords.csv".format(
+                      test_train)
+        print "checking {}".format(fname)
+            # check if the file already exists prior to attempting to 
+            # process it
+        if os.path.isfile(fname) :
+            print "file already exists. reading in stopwords"
+            corpus[test_train] = []
+            in_df = pd.read_csv(fname)
+            for index,row in in_df.iterrows():
+                if index % 10000 == 0:
+                    print test_train, ": " + str(index)
+                corpus[test_train].append(row['conversation'].split(" "))
+        else:
+            print "creating new stopword-free file"
+            with open(fname,'w') as csvfile:
+            
+                writer = csv.writer(csvfile)
+                writer.writerow(('id','conversation'))
+                for i in range(len(corpus[test_train])):
+                    if i% 10000 == 0:
+                        print test_train + ": " + str(i)
+                        print len(corpus[test_train][i])
+                    corpus[test_train][i] = [x for x in 
+                        corpus[test_train][i] if x not in sw]
+                    writer.writerow((i," ".join(corpus[test_train][i])))
+
+#    print len(corpus["test"])
+#    print len(corpus["train"])
+    print "finding n-grams"
     for test_train in corpus.keys():
         fname = "../csv_files/{0}_input_processed_trigrams.csv".format(
                   test_train)
-        with open(fname,'w') as csvfile:
-            
-            writer = csv.writer(csvfile)
-            writer.writerow(('id','conversation'))
-            
-            i = 0
-            for conv in corpus[test_train]:
-                print i, ": ", test_train
-                i += 1
-                if n == 2:
-                    writer.writerow((i," ".join(bigram[conv])))
-                elif n == 3:
-                    writer.writerow((i," ".join(trigram[conv])))
+        print "checking {}".format(fname)
+        if not os.path.isfile(fname):
+            print "file does not yet exist. building file"
+            with open(fname,'w') as csvfile:
+                
+                writer = csv.writer(csvfile)
+                writer.writerow(('id','conversation'))
+                
+                i = 0
+                for conv in corpus[test_train]:
+                    if i % 10000 == 0:
+                        print i, ": ", test_train
+                    i += 1
+                    if n == 2:
+                        writer.writerow((i," ".join(bigram[conv])))
+                    elif n == 3:
+    #                    print " ".join(trigram[conv])
+                        writer.writerow((i," ".join(trigram[conv])))
+        else:            
+            print "file already exists"
+
+
                     
 if __name__ == "__main__":
     get_n_grams(3)

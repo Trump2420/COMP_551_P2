@@ -10,6 +10,7 @@ import pandas as pd
 #import numpy as np
 import nltk
 import re
+import os.path
 
 class MySentences(object):
     def __init__(self, fname):
@@ -29,31 +30,31 @@ def build_dictionary():
     
     output_csv = "../csv_files/dictionary_frequency_trigrams.csv"
     
+    if not os.path.isfile(output_csv):
     
-    
-    tokens = []
-    for fname in [train_csv,test_csv]:
-        #get all the words that appear in the training corpus
-        i = 0
-        for conversation in MySentences(fname):
-            print i
-            i+=1
-            tokens.extend(conversation)
-    
-    
-    # find the frequency distribution of these tokens
-    freq_dist = nltk.FreqDist(tokens)
-    
-    # sort by order of frequency
-    most_common = freq_dist.most_common()
-    
-    # obtains the frequency and words
-    words = [item[0] for item in most_common]
-    counts = [item[1] for item in most_common]
-    
-    # create a dataframe and save as a csv                                       
-    out_df = pd.DataFrame({"word":words, "counts":counts})
-    out_df.to_csv(output_csv, index=False)
+        tokens = []
+        for fname in [train_csv,test_csv]:
+            #get all the words that appear in the training corpus
+            i = 0
+            for conversation in MySentences(fname):
+                print i
+                i+=1
+                tokens.extend(conversation)
+        
+        
+        # find the frequency distribution of these tokens
+        freq_dist = nltk.FreqDist(tokens)
+        
+        # sort by order of frequency
+        most_common = freq_dist.most_common()
+        
+        # obtains the frequency and words
+        words = [item[0] for item in most_common]
+        counts = [item[1] for item in most_common]
+        
+        # create a dataframe and save as a csv                                       
+        out_df = pd.DataFrame({"word":words, "counts":counts})
+        out_df.to_csv(output_csv, index=False)
     
 if __name__ == "__main__":
     build_dictionary()
