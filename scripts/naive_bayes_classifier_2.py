@@ -1,4 +1,6 @@
 import math
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def words_from_file(file):
@@ -60,7 +62,6 @@ def category_list_maker():
             worldnews_list.append(train_input_list[index])
     return hockey_list, movies_list, nba_list, news_list, nfl_list, politics_list, soccer_list, worldnews_list
 
-
 def frequency_counter(xs, ys):
     """this function takes a list of words and a dictionary as input and returns a list that corresponds to
     the frequency of each word in dictionary that appears in the list """
@@ -105,8 +106,9 @@ def joint_probability(lst1, lst2):
     result = 0
     # i = 0
     for i, v in enumerate(lst2):
-        result += math.log(v) * int(lst1[i])
-        i += 1
+        if lst1[i] != 0:
+            result += math.log(v) * int(lst1[i])
+        # i += 1
     return result
 
 
@@ -127,6 +129,27 @@ def prediction(lst):
     return category_list[index]
 
 
+def file_maker2(name, lst):
+    import csv
+    with open(name, 'w') as csv_file:
+        file_writer = csv.writer(csv_file, delimiter=',', lineterminator='\n')
+        file_writer.writerow(['id', 'category'])
+        for i, row in enumerate(lst):
+            file_writer.writerow([i, row])
+    return None
+
+
+def duplicate_remover(lst):
+    """this remove duplicate from a list"""
+    new_lst = []
+    recent_element = None
+    for element in lst:
+        if element != recent_element:
+            new_lst.append(element)
+            recent_element = element
+    return new_lst
+
+
 def file_maker(name, lst):
     import csv
     with open(name, 'w') as csv_file:
@@ -134,18 +157,77 @@ def file_maker(name, lst):
         file_writer.writerow(['id', 'category'])
         for i, row in enumerate(lst):
             file_writer.writerow([i, row])
+    return None
 
 
-# creating variables and assigning appropriate values to them
-train_output_list = words_from_file("train_output_processed.csv")
-train_input_list = list_from_file("train_input_processed.csv")
-dictionary = words_from_file("dictionary_20000.csv")
-test_input_list = list_from_file("test_input_processed.csv")
-# print(test_input_list[0])
+def dictionary_maker(xs, ys, size):
+    result = []
+    counter_list = []
+    for i in range(len(ys)):
+        counter_list.append(0)
+    xi = 0
+    yi = 0
+    # result = []
+
+    while True:
+        if xi >= len(xs):
+            # result.extend(ys[yi:])
+            break
+        if yi >= len(ys):
+            # result.extend(xs[xi:])
+            break
+        if xs[xi] == ys[yi]:
+            # result.append(xs[xi])
+            counter_list[yi] += 1
+            xi += 1
+            # yi += 1
+        elif xs[xi] < ys[yi]:
+            # result.append(xs[xi])
+            xi += 1
+        else:
+            # result.append(ys[yi])
+            yi += 1
+        # print(result, yi, len(ys), xi)
+    # return counter_list
+
+    for i, v in enumerate(counter_list):
+        if v > size:
+            result.append(ys[i])
+    return result
+
+
+all_data_input_list = list_from_file("train_input_processed_1_grams.csv")
+all_data_output_list = list_from_file("train_output_processed.csv")
+training_input_list = all_data_input_list
+training_output_list = all_data_output_list
+validation_input_list = all_data_input_list
+validation_output_list = all_data_output_list
+
+training_data_set = words_from_list(training_input_list)
+train_output_list = words_from_list(training_output_list)
+train_input_list = training_input_list
+val_output_list = words_from_list(validation_output_list)
+# for lst in  train_input_list[:100]:
+#     print(lst)
+dictionary = words_from_file("dictionary_10000_lamin.csv")
+# test_input_list = list_from_file("test_input_processed.csv")
+
+
+##################################################################################################
+# making dictionary
+# training_data_set.sort()
+# main_dictionary = duplicate_remover(training_data_set)
+# dictionary_10000_lamin = dictionary_maker(training_data_set, main_dictionary, 35)
+# print(len(dictionary_10000_lamin))
+# file_maker("dictionary_10000_lamin.csv", dictionary_10000_lamin)
+
+##################################################################################################
 
 # creating a list of records for each class
 hockey_list, movies_list, nba_list, news_list, nfl_list, politics_list, soccer_list, worldnews_list \
     = category_list_maker()
+
+
 
 # finding the probability of each category(class)
 p_hockey = len(hockey_list)/len(train_output_list)
@@ -156,6 +238,42 @@ p_nfl = len(nfl_list)/len(train_output_list)
 p_politics = len(politics_list)/len(train_output_list)
 p_soccer = len(soccer_list)/len(train_output_list)
 p_worldnews = len(worldnews_list)/len(train_output_list)
+
+category_list = ["hockey", "movies", "nba", "news", "nfl", "politics", "soccer", "worldnews"]
+category_probability = [p_hockey, p_movies, p_nba, p_news, p_nfl, p_politics, p_soccer, p_worldnews]
+
+
+def bar_chart_plotter(xs, ys):
+    """this function takes a list of probability distribution and plot them"""
+    n = 8
+    ind = np.arange(n)  # the x locations for the groups
+    width = 0.3  # the width of the bars
+
+    fig, ax = plt.subplots()
+    rects = ax.bar(ind, ys, width, color='b')
+    ax.set_xticklabels(xs, rotation=45)
+    ax.set_ylabel('percent')
+    ax.set_title('percentage of examples in training set for each category')
+    ax.set_xticks(ind + width / 2)
+    plt.axis([-.1, 7.5, 0, .2])
+
+    def autolabel(rects):
+        """
+        Attach a text label above each bar displaying its height
+        """
+        for rect in rects:
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2., 1.01 * height,
+                    '%.2f' % (height*100),
+                    ha='center', va='bottom', rotation='vertical')
+
+    autolabel(rects)
+    plt.show()
+
+    return None
+
+bar_chart_plotter(category_list, category_probability)
+
 
 # finding all words for each category and putting them into a single list of words
 hockey_words_list = words_from_list(hockey_list)
@@ -187,10 +305,13 @@ p_words_given_politics = probability_calculator(politics_words_frequency, politi
 p_words_given_soccer = probability_calculator(soccer_words_frequency, soccer_words_list)
 p_words_given_worldnews = probability_calculator(worldnews_words_frequency, worldnews_words_list)
 
+
+# file_maker("validation_output_stem.csv", val_output_list)
+
 # creating the position-list for test-input
 temp = []
-for i, v in enumerate(test_input_list):
+for i, v in enumerate(validation_input_list):
     temp.append(prediction(v))
     print(i)
-file_maker("test_predict_4.csv", temp)
+file_maker("prediction_for_validation_lamin_40000.csv", temp)
 
