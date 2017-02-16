@@ -214,7 +214,7 @@ dictionary = words_from_file("dictionary_10000_lamin.csv")
 
 
 ##################################################################################################
-# making dictionary
+# making dictionary ### Uncomment this section to create dictionaries ###
 # training_data_set.sort()
 # main_dictionary = duplicate_remover(training_data_set)
 # dictionary_10000_lamin = dictionary_maker(training_data_set, main_dictionary, 35)
