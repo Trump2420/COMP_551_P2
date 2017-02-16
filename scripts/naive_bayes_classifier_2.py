@@ -198,10 +198,10 @@ def dictionary_maker(xs, ys, size):
 
 all_data_input_list = list_from_file("train_input_processed_1_grams.csv")
 all_data_output_list = list_from_file("train_output_processed.csv")
-training_input_list = all_data_input_list
-training_output_list = all_data_output_list
-validation_input_list = all_data_input_list
-validation_output_list = all_data_output_list
+training_input_list = all_data_input_list[:int(len(all_data_input_list)*.8)]
+training_output_list = all_data_output_list[:int(len(all_data_output_list)*.8)]
+validation_input_list = all_data_input_list[int(len(all_data_input_list)*.8):]
+validation_output_list = all_data_output_list[int(len(all_data_output_list)*.8):]
 
 training_data_set = words_from_list(training_input_list)
 train_output_list = words_from_list(training_output_list)
@@ -244,7 +244,7 @@ category_probability = [p_hockey, p_movies, p_nba, p_news, p_nfl, p_politics, p_
 
 
 def bar_chart_plotter(xs, ys):
-    """this function takes a list of probability distribution and plot them"""
+    """this function takes the list of different class size and plot them"""
     n = 8
     ind = np.arange(n)  # the x locations for the groups
     width = 0.3  # the width of the bars
@@ -256,7 +256,7 @@ def bar_chart_plotter(xs, ys):
     ax.set_title('percentage of examples in training set for each category')
     ax.set_xticks(ind + width / 2)
     plt.axis([-.1, 7.5, 0, .2])
-
+    
     def autolabel(rects):
         """
         Attach a text label above each bar displaying its height
@@ -313,5 +313,8 @@ temp = []
 for i, v in enumerate(validation_input_list):
     temp.append(prediction(v))
     print(i)
-file_maker("prediction_for_validation_lamin_40000.csv", temp)
+file_maker("prediction_for_validation_lamin_10000.csv", temp)
+
+
+
 
