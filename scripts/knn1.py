@@ -42,6 +42,12 @@ def createFeatures(comments, dictionary):
     print "#3: features created - ", dataset
     return dataset
 
+def createFeatures_scikit(comments,dictionary):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    sklearn_tfidf = TfidfVectorizer(min_df=0,sublinear_tf=True, dtype=np.int8, vocabulary = dictionary, tokenizer=tokenize)
+    return sklearn_tfidf.fit_transform(comments)
+
+
 def loadInputSet(dataset, split, trainInput=[], cvInput=[], trainIndex = [], cvIndex = []):
     random.seed(datetime.now())
     m,n = dataset.shape   
@@ -65,6 +71,10 @@ def euclideanDistance(instance1, instance2):
         distance += pow((instance1[x] - instance2[x]), 2)
     return math.sqrt(distance)
 
+def pairwiseDistance(instance1, instance2):
+    from sklearn.metrics import pairwise_distances
+    return pairwise_distances(instance1, instance2)#, n_jobs = 10)
+
 def cosineDistance(vec1, vec2):
     intersection = set(vec1.keys()) & set(vec2.keys())
     numerator = sum([vec1[x] * vec2[x] for x in intersection])
@@ -83,7 +93,7 @@ def getNeighbors(trainInput, testInstance, k):
 
     for x in range(len(trainInput)):
         print "inner iteration #", x
-        dist = euclideanDistance(testInstance, trainInput[x])
+        dist = pairwiseDistance(testInstance, trainInput[x])
         distances.append((x, dist))
     distances.sort(key=operator.itemgetter(1))
     neighbors = []
@@ -117,9 +127,7 @@ def main():
 
     split = 0.70
      
-    NumIterations = 1
     FullPath = "/home/srikanth.pasumarthy/COMP551/COMP_551_P2"    
-
     with open(FullPath + '/csv_files/train_input_processed_2_grams.csv', 'rb') as csvfile:
         lines = csv.reader(csvfile)
         dataset1 = list(lines)
@@ -127,56 +135,62 @@ def main():
     with open(FullPath + '/csv_files/dictionary_frequency_2_grams.csv', 'rb') as csvfile:
         lines = csv.reader(csvfile)
         dataset2 = list(lines)
+    dataset2 = [[row[1] for row in dataset2[1:][:]]]
+
+    dataset1 = createFeatures_scikit([row[1] for row in dataset1[1:][:]], [item for sublist in dataset2 for item in sublist])
+    print "#1:", dataset1.shape
+     
+    with open(FullPath + '/csv_files/train_output.csv', 'rb') as csvfile:
+        lines = csv.reader(csvfile)
+        dataset2 = list(lines)
 
     dataset2 = [[row[1] for row in dataset2[1:][:]]]
     dataset2 = [item for sublist in dataset2 for item in sublist]
 
-    dataset1 = createFeatures([row[1] for row in dataset1[1:][:]], dataset2)
-    dataset1 = np.array([[float(r) for r in row[1:]] for row in dataset1[1:][:]])
-    print "#1:", dataset1.shape
-
-    with open(FullPath + '/csv_files/test_input_vectorized.csv', 'rb') as csvfile:
-        lines = csv.reader(csvfile)
-        dataset3 = list(lines)
-
-    dataset3 = np.array([[float(r) for r in row[1:]] for row in dataset3[1:][:]])
-    dataset3 = createFeatures([row[1] for row in dataset3[1:][:]], dataset2)
-
-    print "#2:", dataset3.shape
-
-    with open(FullPath + '/csv_files/train_output.csv', 'rb') as csvfile:
-        lines = csv.reader(csvfile)
-        dataset2 = list(lines)
-        dataset2 = np.array([[row[1] for row in dataset2[1:][:]]])
-        dataset2 = np.transpose(dataset2)
-    print "#3:", dataset2.shape
+    m,n = dataset1.shape
+    index = int(0.98 * m)
     
-    #from sklearn.utils import shuffle
-    #dataset1, dataset2 = shuffle(dataset1, dataset2, random_state=0)
+    from sklearn.utils import shuffle
 
-    predictions = []
+    NumIterations = 1
+    k = 8
+    
+    lookupTable, dummy = np.unique(dataset2, return_inverse=True)
 
-    ofile  = open('prediction_knn.csv', "wb")
-    writer = csv.writer(ofile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+    from sklearn.metrics import confusion_matrix
+    from sklearn.metrics import classification_report
 
-    k = 3
-    m,n = dataset3.shape
-    for i in range(m):
-        s = euclideanDistance(dataset1, dataset3[i][:])
-        ind = heapq.nsmallest(k, range(len(s)), s.take)
-        result = getResponse(ind, dataset2)
+    for iteration in range(NumIterations):
+        dataset1, dataset2 = shuffle(dataset1, dataset2)
+        trainInput = dataset1[:index][:]
+        trainOutput = dataset2[:index]
+        cvInput = dataset1[index:][:]
+        cvOutput = dataset2[index:]
 
-        row = []
-        row.append(i)
-        row.append(result)
-        writer.writerow(row)
+        m,n = cvInput.shape
+        predictions = []
 
-        predictions.append(result)
-        print "#debug:", i, ":", s.shape, result
+        for i in range(m):
+            s = pairwiseDistance(trainInput, cvInput[i][:])
+            ind = heapq.nsmallest(k, range(len(s)), s.take)
+            result = getResponse(ind,trainOutput)
+            predictions.append(result)
 
-    print "#done: ", len(predictions)
+        k += 1
+        predictions = np.array(predictions)
+        accuracy = getAccuracy(cvOutput, predictions)
+        cfmatrix = confusion_matrix(cvOutput, predictions)
+        cfreport = classification_report(cvOutput, predictions, target_names = lookupTable)
 
-    ofile.close()
+        print "debug #: Prediction Completed; "
+        print "Confusion Matrix: ", cfmatrix
+        print "CF Report: ", cfreport
+
+        print('k = ' + str(k) + ' Accuracy = ' + str(accuracy) + '%')
+        accList.append((k,accuracy))
+
+    print('\n'.join('{}: {}'.format(*k) for k in enumerate(accList)))
+
 
     ''' 
     for iteration in range(NumIterations):
